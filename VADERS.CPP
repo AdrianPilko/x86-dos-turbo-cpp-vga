@@ -29,7 +29,7 @@ void draw_line(int x0, int y0, int x1, int y1, byte colour);
 void plotLineLow(int x0, int y0, int x1, int y1, byte colour);
 void plotLineHigh(int x0, int y0, int x1, int y1, byte colour);
 void drawSprite_slow(int x0, int y0, byte * spriteData, byte rows,byte cols, int colour);
-
+int getch_noblock();
 
 int main()
 {
@@ -42,6 +42,12 @@ int main()
     int y = 100;
     int oldx = x;
     int oldy = y;
+    int missilex = 0;
+    int missiley = 0;
+    int oldmissilex = 0;
+    int oldmissiley = 0;
+    byte missileInFlight = 0;
+    byte missileFired = 0;
 
     // sprites will be 8 pixels wide by 8 high (for now)
     spriteData = (byte*)malloc(8);
@@ -58,8 +64,6 @@ int main()
     spriteData[6] = 0x7e;   //  01111110;
     spriteData[7] = 0x3c;   //  00111100;
 
-
-
     if ((spriteData == NULL) || (blankSpriteData == NULL))
     {
     	printf("failed To malloc sprite data\n");
@@ -68,14 +72,15 @@ int main()
     }
 
     set_videomode(MODE_13);
+    drawSprite_slow(x, y, spriteData, 8,8, colour);
 
     while (c != 'q')
     {
-        //testing draw sprite and moving around
-        drawSprite_slow(x, y, spriteData, 8,8, colour);
-        c = getch();
+        c = getch_noblock();
         oldx = x;
         oldy = y;
+        oldmissilex = missilex;
+        oldmissiley = missiley;
         switch (c)
         {
             case 'o' : if (x > 1)
@@ -102,6 +107,9 @@ int main()
                         moved = 1;
                        }
                        break;
+            case ' ' : missileFired = 1;
+                       missileInFlight = 1;
+                       break;
             default  : moved = 0;
                        break;
         };
@@ -109,7 +117,36 @@ int main()
         if (moved == 1)
         {
             drawSprite_slow(oldx, oldy, blankSpriteData, 8,8, 0);
+            drawSprite_slow(x, y, spriteData, 8,8, colour);
             moved = 0;
+        }
+        // initialised missile
+        if (missileFired == 1)
+        {
+            missilex = x;
+            missiley = y-8;
+            missileFired = 0;
+        }
+
+        if (missileInFlight == 1)
+        {
+            byte missile[8];
+            missile[0] = 0x00;
+            missile[1] = 0x00;
+            missile[2] = 0x08;
+            missile[3] = 0x08;
+            missile[4] = 0x08;
+            missile[5] = 0x00;
+            missile[6] = 0x00;
+            drawSprite_slow(missilex,missiley, &missile[0],6,8, 7);
+            missiley = missiley - 1;
+            if (missiley < 4)
+            {
+                missileInFlight = 0;
+                memset(missile,0,8 * sizeof(byte));
+                drawSprite_slow(missilex,missiley, &missile[0],6,8, 7);
+            }
+            delay(1);
         }
     }
 
@@ -118,6 +155,14 @@ int main()
 
     set_videomode(MODE_TEXT);
     return 0;
+}
+
+int getch_noblock()
+{
+    if (kbhit())
+       return getch();
+    else
+       return -1;
 }
 
 
@@ -138,6 +183,10 @@ void drawSprite_slow(int x0, int y0, byte * spriteData, byte rows,byte cols, int
             if (mask & *ptr)
             {
                 PLOT_PIXEL(x, y, colour);
+            }
+            else
+            {
+                PLOT_PIXEL(x,y,0);
             }
             mask = mask << 1;
             x = x + 1;
@@ -262,7 +311,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, byte colour)
 void set_videomode(int mode)
 {
     union REGS regs;
-    regs.h.ah =0x00;
-    regs.h.al =mode;
+    regs.h.ah = 0x00;
+    regs.h.al = mode;
     int86(0x10,&regs,&regs);
 }
