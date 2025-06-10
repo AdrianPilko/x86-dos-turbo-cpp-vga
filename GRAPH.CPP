@@ -23,12 +23,20 @@ int main(void)
     int colour = 3;
     byte * spriteData;
     byte * blankSpriteData;
+    byte * missile;
+    byte * missileBang;
+    byte * enemySpriteData;
     int x = 100;
     int y = 100;
     int oldx = x;
     int oldy = y;
     int missilex = 0;
     int missiley = 0;
+    int enemyx = 40;
+    int enemyy = 40;
+    byte enemyMove = 40;
+    byte enemySpriteOffset = 0;
+
     byte missileInFlight = 0;
     byte missileFired = 0;
     int maxx,maxy;
@@ -53,7 +61,47 @@ int main(void)
    maxx = getmaxx();
    maxy = getmaxy();
    x = maxx / 2;
-   y = maxy / 2;
+   y = maxy - 32;
+
+
+   missile = (byte*)malloc(7);
+   missileBang = (byte*)malloc(7);
+
+   missile[0] = 0x00; // 00000000
+   missile[1] = 0x00; // 00000000
+   missile[2] = 0x18; // 00011000
+   missile[3] = 0x18; // 00011000
+   missile[4] = 0x18; // 00011000
+   missile[5] = 0x00; // 00000000
+   missile[6] = 0x00; // 00000000
+   missileBang[0] = 0x83; // 10000011
+   missileBang[1] = 0x28; // 00101000
+   missileBang[2] = 0x24; // 00100100
+   missileBang[3] = 0x5a; // 01011010
+   missileBang[4] = 0x24; // 00100100
+   missileBang[5] = 0x92; // 10010010
+   missileBang[6] = 0x10; // 00010000
+
+
+   enemySpriteData = (byte*)malloc(16);
+   enemySpriteData[0] = 0x7e;   // 01111110
+   enemySpriteData[1] = 0xdb;   // 11011011
+   enemySpriteData[2] = 0xff;   // 11111111
+   enemySpriteData[3] = 0x66;   // 01100110
+   enemySpriteData[4] = 0x3c;   // 00111100
+   enemySpriteData[5] = 0x24;   // 00100100
+   enemySpriteData[6] = 0x42;   // 01000010
+   enemySpriteData[7] = 0x81;   // 10000001
+
+   enemySpriteData[8] = 0x7e;   // 01111110
+   enemySpriteData[9] = 0xdb;   // 11011011
+   enemySpriteData[10] = 0xff;   // 11111111
+   enemySpriteData[11] = 0x42;   // 01000010
+   enemySpriteData[12] = 0x3c;   // 00111100
+   enemySpriteData[13] = 0x24;   // 00100100
+   enemySpriteData[14] = 0x18;   // 00011000
+   enemySpriteData[15] = 0x24;   // 00100100
+
 
     // sprites will be 8 pixels wide by 8 high (for now)
     spriteData = (byte*)malloc(8);
@@ -77,6 +125,8 @@ int main(void)
         exit(0);
     }
 
+    drawSprite_slow(enemyx, enemyy, enemySpriteData, 8,8, colour,1);
+
     drawSprite_slow(x, y, spriteData, 8,8, colour,1);
 
     while (c != 'q')
@@ -88,30 +138,30 @@ int main(void)
         {
           switch (c)
           {
-            case 'o' : if (x > 1)
+            case 'o' : if (x > 8)
                        {
-                        x = x - 1;
+                        x = x - 8;
                         moved = 1;
                        }
                        break;
-            case 'p' : if (x < maxx - 1)
+            case 'p' : if (x < maxx - 8)
                        {
-                        x = x + 1;
+                        x = x + 8;
                         moved = 1;
                        }
                        break;
-            case 'a' : if (y > 1)
-                       {
-                        y = y - 1;
-                        moved = 1;
-                       }
-                       break;
-            case 'z' : if (y < maxy-1)
-                       {
-                        y = y + 1;
-                        moved = 1;
-                       }
-                       break;
+       //     case 'a' : if (y > 8)
+         //              {
+           //             y = y - 8;
+             //           moved = 1;
+               //        }
+                 //      break;
+      //      case 'z' : if (y < maxy-8)
+        //               {
+          //              y = y + 8;
+            //            moved = 1;
+              //           }
+                //       break;
             case ' ' : missileFired = 1;
                        missileInFlight = 1;
                        break;
@@ -120,18 +170,42 @@ int main(void)
           };
         // only blank sprite if moved flag == 1
         }
+
+        drawSprite_slow(enemyx, enemyy,
+                        enemySpriteData+enemySpriteOffset,
+                        8,8, colour,1);
+
+        if (enemyMove-- == 0)
+        {
+            enemySpriteOffset = 8 - enemySpriteOffset;
+            drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
+            enemyx = enemyx + 16;
+            drawSprite_slow(enemyx, enemyy,
+                            enemySpriteData+enemySpriteOffset,
+                            8,8, colour,1);
+            enemyMove = 10;
+            if (enemyx >= maxx - 40)
+            {
+                drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
+                enemyx = 40;
+                enemyy = enemyy + 8;
+            }
+        }
+
         if (moved == 1)
         {
             drawSprite_slow(oldx, oldy, blankSpriteData, 8,8, 0,1);
             drawSprite_slow(x, y, spriteData, 8,8, colour,1);
             moved = 0;
+            if (missileInFlight == 0)
+               missilex = x;
         }
 
         // initialised missile
-        if (missileFired == 1)
+        if ((missileFired == 1) && (missileInFlight == 0))
         {
             missilex = x;
-            missiley = y-8;
+            missiley = y-24;
             missileFired = 0;
             drawSprite_slow(oldx, oldy, blankSpriteData, 8,8, 0,1);
             drawSprite_slow(x, y, spriteData, 8,8, colour,1);
@@ -139,38 +213,46 @@ int main(void)
 
         if (missileInFlight == 1)
         {
-            byte missile[8];
-            missile[0] = 0x00;
-            missile[1] = 0x00;
-            missile[2] = 0x08;
-            missile[3] = 0x08;
-            missile[4] = 0x08;
-            missile[5] = 0x00;
-            missile[6] = 0x00;
-            drawSprite_slow(missilex,missiley, &missile[0],6,8, 7,1);
-            missiley = missiley - 1;
+            if (((missilex == enemyx) ||
+                (missilex+1 == enemyx) ||
+                (missilex+2 == enemyx) ||
+                (missilex+3 == enemyx) ||
+                (missilex+4 == enemyx))
+                && ((missiley == enemyy) ||
+                    (missiley+1 == enemyy) ||
+                    (missiley+2 == enemyy)))
 
 
-            if (missiley < 4)
+            {
+                drawSprite_slow(enemyx,enemyy, missileBang,6,8, 7,1);
+            }
+            else
+            {
+                drawSprite_slow(missilex,missiley, missile,6,8, 7,1);
+            }
+            missiley = missiley - 4;
+
+
+            if (missiley < 16)
             {
                 missileInFlight = 0;
-                memset(missile,0,8 * sizeof(byte));
-                drawSprite_slow(missilex,missiley, &missile[0],6,8, 7,1);
+
+                drawSprite_slow(missilex,missiley, blankSpriteData,6,8,0,1);
                 drawSprite_slow(x, y, spriteData, 8,8, colour,1);
             }
         }
     }
 
+     /* clean up */
     free(spriteData);
     free(blankSpriteData);
+    free(missile);
+    free(missileBang);
+    free(enemySpriteData);
 
-
-
-
-   /* clean up */
-   getch();
-   closegraph();
-   return 0;
+    getch();
+    closegraph();
+    return 0;
 }
 
 
