@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <dos.h>
 
+#define NUMBER_OF_ENEMY_ROWS 6
+
 typedef unsigned char byte;
 
 void drawSprite_slow(int x0, int y0, byte * spriteData, byte rows,byte cols, int colour,int big);
@@ -18,6 +20,7 @@ int getch_noblock();
 
 int main(void)
 {
+    unsigned long score = 0;
     char c = ' ';
     byte moved = 0;
     int colour = 3;
@@ -33,6 +36,7 @@ int main(void)
     int missilex = 0;
     int missiley = 0;
     int enemyx = 40;
+    int enemyxDirection = 1;
     int enemyy = 40;
     byte enemyMove = 40;
     byte enemySpriteOffset = 0;
@@ -40,6 +44,14 @@ int main(void)
     byte missileInFlight = 0;
     byte missileFired = 0;
     int maxx,maxy;
+    int tempIndex = 0;
+    // this controls the enemys in the grid - if they are displayed or not
+    // and if they are "hittable". we have 6 rows of 8
+    byte enemyValid[NUMBER_OF_ENEMY_ROWS];
+    for (tempIndex = 0; tempIndex < NUMBER_OF_ENEMY_ROWS; tempIndex++)
+    {
+        enemyValid[tempIndex] = 1;
+    }
 
 
    /* request auto detection */
@@ -61,7 +73,7 @@ int main(void)
    maxx = getmaxx();
    maxy = getmaxy();
    x = maxx / 2;
-   y = maxy - 32;
+   y = maxy - 256;
 
 
    missile = (byte*)malloc(7);
@@ -81,6 +93,9 @@ int main(void)
    missileBang[4] = 0x24; // 00100100
    missileBang[5] = 0x92; // 10010010
    missileBang[6] = 0x10; // 00010000
+   missileBang[7] = 0x12;
+   missileBang[8] = 0x15;
+
 
 
    enemySpriteData = (byte*)malloc(16);
@@ -150,18 +165,6 @@ int main(void)
                         moved = 1;
                        }
                        break;
-       //     case 'a' : if (y > 8)
-         //              {
-           //             y = y - 8;
-             //           moved = 1;
-               //        }
-                 //      break;
-      //      case 'z' : if (y < maxy-8)
-        //               {
-          //              y = y + 8;
-            //            moved = 1;
-              //           }
-                //       break;
             case ' ' : missileFired = 1;
                        missileInFlight = 1;
                        break;
@@ -171,25 +174,29 @@ int main(void)
         // only blank sprite if moved flag == 1
         }
 
-        drawSprite_slow(enemyx, enemyy,
-                        enemySpriteData+enemySpriteOffset,
-                        8,8, colour,1);
-
-        if (enemyMove-- == 0)
+        if (enemyValid[0] == 1)
         {
-            enemySpriteOffset = 8 - enemySpriteOffset;
-            drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
-            enemyx = enemyx + 16;
             drawSprite_slow(enemyx, enemyy,
+                        enemySpriteData+enemySpriteOffset,
+                        8,8, WHITE,1);
+
+
+           if (enemyMove-- == 0)
+           {
+               enemySpriteOffset = 8 - enemySpriteOffset;
+               drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
+               enemyx = enemyx + (16 * enemyxDirection);
+               drawSprite_slow(enemyx, enemyy,
                             enemySpriteData+enemySpriteOffset,
-                            8,8, colour,1);
-            enemyMove = 10;
-            if (enemyx >= maxx - 40)
-            {
-                drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
-                enemyx = 40;
-                enemyy = enemyy + 8;
-            }
+                            8,8, WHITE,1);
+               enemyMove = 10;
+               if ((enemyx >= maxx - 40) || (enemyx <= 40))
+               {
+                  drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
+                  enemyxDirection = -enemyxDirection;
+                  enemyy = enemyy + 8;
+               }
+           }
         }
 
         if (moved == 1)
@@ -213,32 +220,43 @@ int main(void)
 
         if (missileInFlight == 1)
         {
-            if (((missilex == enemyx) ||
-                (missilex+1 == enemyx) ||
-                (missilex+2 == enemyx) ||
-                (missilex+3 == enemyx) ||
-                (missilex+4 == enemyx))
-                && ((missiley == enemyy) ||
-                    (missiley+1 == enemyy) ||
-                    (missiley+2 == enemyy)))
-
-
+            if (enemyValid[0] == 1)
             {
-                drawSprite_slow(enemyx,enemyy, missileBang,6,8, 7,1);
-            }
-            else
-            {
-                drawSprite_slow(missilex,missiley, missile,6,8, 7,1);
+                if (((missilex == enemyx) ||
+                    (missilex+1 == enemyx) ||
+                    (missilex+2 == enemyx) ||
+                    (missilex+3 == enemyx) ||
+                    (missilex+4 == enemyx) ||
+                    (missilex+5 == enemyx) ||
+                    (missilex+6 == enemyx) ||
+                    (missilex+7 == enemyx) ||
+                    (missilex+8 == enemyx) ||
+                    (missilex+9 == enemyx))
+                    && ((missiley == enemyy) ||
+                       (missiley+1 == enemyy) ||
+                       (missiley+2 == enemyy) ||
+                       (missiley+3 == enemyy) ||
+                       (missiley+4 == enemyy) ||
+                       (missiley+5 == enemyy) ||
+                       (missiley+6 == enemyy)))
+
+                {
+                    drawSprite_slow(enemyx,enemyy, missileBang,8,8, RED,1);
+                    enemyValid[0] = 0; // todo : make work for all rows and enemys within
+                    score++;
+                }
+                else
+                {
+                    drawSprite_slow(missilex,missiley, missile,6,8, YELLOW,1);
+                }
             }
             missiley = missiley - 4;
 
-
             if (missiley < 16)
             {
-                missileInFlight = 0;
-
-                drawSprite_slow(missilex,missiley, blankSpriteData,6,8,0,1);
-                drawSprite_slow(x, y, spriteData, 8,8, colour,1);
+               missileInFlight = 0;
+               drawSprite_slow(missilex,missiley, blankSpriteData,6,8,0,1);
+               drawSprite_slow(x, y, spriteData, 8,8, CYAN,1);
             }
         }
     }
