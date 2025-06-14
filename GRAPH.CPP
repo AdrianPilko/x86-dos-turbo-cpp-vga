@@ -1,7 +1,7 @@
 /// Adrian Pilkington - 2025
 /// BUILT UNDER TURBO C++ 3.0 USING DOSBOX
 /// experimenting with graphics.h examples
-
+/// invader game - so called because currently only one!!
 #include <graphics.h>
 #include <stdlib.h>
 #include <stdio.h>
