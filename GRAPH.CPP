@@ -11,6 +11,10 @@
 #include <dos.h>
 
 #define NUMBER_OF_ENEMY_ROWS 6
+#define SCORE_X_POS 50
+#define LEVEL_X_POS 200
+#define SCORE_INC 100
+#define ENEMY_SPEED_INCREASE 3
 
 typedef unsigned char byte;
 
@@ -21,6 +25,9 @@ int getch_noblock();
 int main(void)
 {
     unsigned long score = 0;
+    char scoreStr[7];
+    unsigned int level = 0;
+    char levelStr[7];
     char c = ' ';
     byte moved = 0;
     int colour = 3;
@@ -40,6 +47,7 @@ int main(void)
     int enemyy = 40;
     byte enemyMove = 40;
     byte enemySpriteOffset = 0;
+    byte enemySpeed=2;
 
     byte missileInFlight = 0;
     byte missileFired = 0;
@@ -144,6 +152,20 @@ int main(void)
 
     drawSprite_slow(x, y, spriteData, 8,8, colour,1);
 
+    missilex = x;
+    missiley = y-24;
+    missileFired = 0;
+    missileInFlight = 0;
+
+    outtextxy(0,0,"SCORE");
+    sprintf(scoreStr,"%06d",score);
+    outtextxy(SCORE_X_POS,0,scoreStr);
+    outtextxy(150,0,"LEVEL");
+    sprintf(levelStr,"%d",level);
+    outtextxy(LEVEL_X_POS,0,levelStr);
+    outtextxy(230,0,"INVADER BY ADRIAN PILKINGTON (YOUTUBE:BYTEFOREVER");
+
+
     while (c != 'q')
     {
         c = getch_noblock();
@@ -185,7 +207,7 @@ int main(void)
            {
                enemySpriteOffset = 8 - enemySpriteOffset;
                drawSprite_slow(enemyx, enemyy, blankSpriteData, 8,8, 0,1);
-               enemyx = enemyx + (16 * enemyxDirection);
+               enemyx = enemyx + (enemySpeed * enemyxDirection);
                drawSprite_slow(enemyx, enemyy,
                             enemySpriteData+enemySpriteOffset,
                             8,8, WHITE,1);
@@ -242,8 +264,28 @@ int main(void)
 
                 {
                     drawSprite_slow(enemyx,enemyy, missileBang,8,8, RED,1);
-                    enemyValid[0] = 0; // todo : make work for all rows and enemys within
-                    score++;
+                    //enemyValid[0] = 0; // todo : make work for all rows and enemys within
+
+                    missileInFlight = 0;
+                    setcolor(BLACK);
+                    outtextxy(SCORE_X_POS,0,scoreStr);
+                    score+=SCORE_INC;
+                    sprintf(scoreStr,"%06d",score);
+                    setcolor(WHITE);
+                    outtextxy(SCORE_X_POS,0,scoreStr);
+                    setcolor(BLACK);
+                    outtextxy(LEVEL_X_POS,0,levelStr);
+                    level = level + 1;
+                    sprintf(levelStr,"%d",level);
+                    setcolor(WHITE);
+                    outtextxy(LEVEL_X_POS,0,levelStr);
+
+
+                    enemySpeed = enemySpeed + ENEMY_SPEED_INCREASE;
+                    enemyx = 40;
+                    enemyxDirection = 1;
+                    enemyy = 40;
+
                 }
                 else
                 {
@@ -345,6 +387,7 @@ int getch_noblock()
     else
        return -1;
 }
+
 
 
 
